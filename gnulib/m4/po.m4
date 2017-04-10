@@ -1,5 +1,5 @@
-# po.m4 serial 21 (gettext-0.18.3)
-dnl Copyright (C) 1995-2014 Free Software Foundation, Inc.
+# po.m4 serial 20 (gettext-0.18.2)
+dnl Copyright (C) 1995-2013 Free Software Foundation, Inc.
 dnl This file is free software; the Free Software Foundation
 dnl gives unlimited permission to copy and/or distribute it,
 dnl with or without modifications, as long as this notice is preserved.
@@ -25,7 +25,6 @@ AC_DEFUN([AM_PO_SUBDIRS],
   AC_REQUIRE([AC_PROG_MAKE_SET])dnl
   AC_REQUIRE([AC_PROG_INSTALL])dnl
   AC_REQUIRE([AC_PROG_MKDIR_P])dnl
-  AC_REQUIRE([AC_PROG_SED])dnl
   AC_REQUIRE([AM_NLS])dnl
 
   dnl Release version of the gettext macros. This is used to ensure that
@@ -110,7 +109,7 @@ changequote([,])dnl
         test -n "$ac_given_srcdir" || ac_given_srcdir="$srcdir"
         case "$ac_given_srcdir" in
           .)  top_srcdir=`echo $ac_dots|sed 's%/$%%'` ;;
-          /*) top_srcdir="$ac_given_srcdir" ;;
+          /*|?:/*) top_srcdir="$ac_given_srcdir" ;;
           *)  top_srcdir="$ac_dots$ac_given_srcdir" ;;
         esac
         # Treat a directory as a PO directory if and only if it has a
