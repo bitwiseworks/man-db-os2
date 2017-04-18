@@ -925,7 +925,11 @@ static char *def_path (int flag)
 
 	/* If we have complete config file failure... */
 	if (!manpath)
+#ifdef __OS2__
+		return xstrdup ("/@unixroot/usr/man");
+#else
 		return xstrdup ("/usr/man");
+#endif
 
 	return manpath;
 }
