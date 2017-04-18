@@ -1297,12 +1297,16 @@ static pipeline *make_roff_command (const char *dir, const char *file,
 			case 0:
 				/* done with preprocessors, now add roff */
 				if (troff) {
+#ifdef HAS_TROFF
 					cmd = pipecmd_new_argstr
 						(get_def ("troff", TROFF));
+#endif
 					save_cat = 0;
 				} else
+#ifdef HAS_TROFF
 					cmd = pipecmd_new_argstr
 						(get_def ("nroff", NROFF));
+#endif
 
 #ifdef TROFF_IS_GROFF
 				if (troff && ditroff)
