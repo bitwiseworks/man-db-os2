@@ -54,7 +54,11 @@ static const char *path_search (void)
 	}
 #endif
 	if (!dir) {
+#ifdef __OS2__
+		dir = "/@unixroot/var/temp";
+#else
 		dir = "/tmp";
+#endif
 		if (access (dir, W_OK) == -1)
 			dir = NULL;
 	}

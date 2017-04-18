@@ -577,7 +577,11 @@ char *find_charset_locale (const char *charset)
 {
 	const char *canonical_charset = get_canonical_charset_name (charset);
 	char *saved_locale;
+#ifdef __OS2__
+	const char supported_path[] = "/@unixroot/usr/share/i18n/SUPPORTED";
+#else
 	const char supported_path[] = "/usr/share/i18n/SUPPORTED";
+#endif
 	FILE *supported = NULL;
 	char *line = NULL;
 	size_t n = 0;
