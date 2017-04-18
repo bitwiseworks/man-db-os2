@@ -375,7 +375,7 @@ fi
 
 # Check for Berkeley db routines (first version API).
 MAN_CHECK_BDB([db5 db], [db5/db_185.h db_185.h], [db5 db-5])
-MAN_CHECK_BDB([db4 db], [db4/db_185.h db_185.h], [db4 db-4])
+MAN_CHECK_BDB([db4 db], [db4/db_185.h db_185.h], [db4 db-4 db-4.8])
 MAN_CHECK_BDB([db3 db], [db3/db_185.h db_185.h], [db3])
 MAN_CHECK_BDB([db2 db], [db_185.h db2/db_185.h db2_185.h], [db2 db])
 MAN_CHECK_BDB([db1 db], [db/db.h db.h db1/db.h], [db db1 c])
