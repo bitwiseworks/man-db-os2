@@ -405,11 +405,19 @@ extern char *program_name;	/* the basename of the program (as called) */
 #define CTYPE(func,arg) (func((unsigned char)(arg)))
 
 /* FSSTND directories */
+#ifdef __OS2__
+#define CAT_ROOT	"/@unixroot/var/catman"		/* required by fsstnd() */
+#define MAN_ROOT	"/@unixroot/usr" 			/* required by fsstnd() */
+/* FHS directories */
+#define FHS_CAT_ROOT	"/@unixroot/var/cache/man"	/* required by fsstnd() */
+#define FHS_MAN_ROOT	"/@unixroot/usr/share"		/* required by fsstnd() */
+#else
 #define CAT_ROOT	"/var/catman"		/* required by fsstnd() */
 #define MAN_ROOT	"/usr" 			/* required by fsstnd() */
 /* FHS directories */
 #define FHS_CAT_ROOT	"/var/cache/man"	/* required by fsstnd() */
 #define FHS_MAN_ROOT	"/usr/share"		/* required by fsstnd() */
+#endif
 
 /* some special database keys used for storing important info */
 #define VER_KEY         "$version$"	/* version key */
