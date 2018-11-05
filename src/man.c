@@ -189,6 +189,9 @@ static char *manpathlist[MAXDIRS];
 /* globals */
 int quiet = 1;
 char *program_name;
+#ifdef __OS2__
+extern
+#endif
 char *database = NULL;
 extern const char *extension; /* for globbing.c */
 extern char *user_config_file;	/* defined in manp.c */

@@ -50,6 +50,9 @@ char *program_name;
 const char *cat_root;
 
 /* for db_storage.c */
+#ifdef __OS2__
+extern
+#endif
 char *database;
 
 const char *argp_program_version = "accessdb " PACKAGE_VERSION;
