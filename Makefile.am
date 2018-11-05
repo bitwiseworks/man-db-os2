@@ -24,7 +24,7 @@ if HAVE_GNULIB_PO
 GNULIB_PO = gnulib/po
 endif
 
-SUBDIRS = docs gnulib/lib $(GNULIB_PO) init lib libdb src man po tools
+SUBDIRS = docs gnulib/lib $(GNULIB_PO) init lib libdb src man manual po tools
 
 dist_noinst_DATA = FAQ NEWS README include/README
 
