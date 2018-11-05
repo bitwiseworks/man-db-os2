@@ -19,7 +19,11 @@
 ## along with man-db; if not, write to the Free Software Foundation,
 ## Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-pkglib_LTLIBRARIES = libman.la
+VENDOR ?=community
+BUILD_INFO=\#\#1\#\# $(shell date +'%d %b %Y %H:%M:%S')     $(shell uname -n)
+BUILDLEVEL_INFO=@\#$(VENDOR):$(VERSION)\#@$(BUILD_INFO)::::0::
+
+lib_LTLIBRARIES = libman.la
 dist_noinst_DATA = README
 
 AM_CFLAGS = $(WARN_CFLAGS)
@@ -68,3 +72,5 @@ libman_la_LDFLAGS = \
 	-avoid-version -release $(VERSION) -rpath $(pkglibdir) \
 	-no-undefined \
 	$(libpipeline_LIBS)
+
+libman_la_LDFLAGS += -buildlevel '$(BUILDLEVEL_INFO)'

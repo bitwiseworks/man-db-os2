@@ -19,7 +19,11 @@
 ## along with man-db; if not, write to the Free Software Foundation,
 ## Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-pkglib_LTLIBRARIES = libmandb.la
+VENDOR ?=community
+BUILD_INFO=\#\#1\#\# $(shell date +'%d %b %Y %H:%M:%S')     $(shell uname -n)
+BUILDLEVEL_INFO=@\#$(VENDOR):$(VERSION)\#@$(BUILD_INFO)::::0::
+
+lib_LTLIBRARIES = libmandb.la
 dist_noinst_DATA = README
 
 AM_CFLAGS = $(WARN_CFLAGS)
@@ -45,3 +49,5 @@ libmandb_la_LIBADD = ../lib/libman.la $(DBLIBS)
 
 libmandb_la_LDFLAGS = \
 	-avoid-version -release $(VERSION) -rpath $(pkglibdir) -no-undefined
+
+libmandb_la_LDFLAGS += -buildlevel '$(BUILDLEVEL_INFO)'
