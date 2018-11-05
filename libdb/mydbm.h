@@ -177,7 +177,11 @@ extern void btree_set_time(DB *db, const struct timespec time);
 #define MYDBM_SET(d, value)		do { MYDBM_SET_DPTR(d, value); MYDBM_RESET_DSIZE(d); } while (0)
 #define MYDBM_FREE_DPTR(d)		do { free (MYDBM_DPTR (d)); MYDBM_SET_DPTR (d, NULL); } while (0)
 
+#ifdef __OS2__
+char *database;
+#else
 extern char *database;
+#endif
 
 /* db_lookup.c */
 extern datum copy_datum (datum dat);
