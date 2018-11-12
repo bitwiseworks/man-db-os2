@@ -105,9 +105,11 @@ static error_t parse_opt (int key, char *arg, struct argp_state *state)
 			return 0;
 		case 't':
 			to_code = xstrdup (arg);
+#ifndef __OS2__  // if we enable libiconv completely, remove this change
 			if (!strstr (to_code, "//"))
 				to_code = appendstr (to_code, "//TRANSLIT",
 						     NULL);
+#endif
 			return 0;
 		case 'd':
 			debug_level = 1;
