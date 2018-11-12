@@ -6,7 +6,7 @@ AC_DEFUN([MAN_PROG_GNU_NROFF],
 [AC_MSG_CHECKING([whether nroff is GNU nroff])
 
 AC_CACHE_VAL([man_cv_prog_gnu_nroff],
-  [if test `$1 <<EOF | tr -d '\n'
+  [if test `$1 <<EOF | tr -d '\r\n'
 \\n(.g
 EOF
 ` -eq 1
