@@ -131,7 +131,11 @@ void add_manconv (pipeline *p, const char *source, const char *target)
 		codes->from[2] = NULL;
 		name = appendstr (name, "UTF-8:", source, NULL);
 	}
+#ifndef __OS2__  // if we enable libiconv completely, remove this change
 	codes->to = xasprintf ("%s//IGNORE", target);
+#else
+	codes->to = xasprintf ("%s", target);
+#endif
 	/* informational only; no shell quoting concerns */
 	name = appendstr (name, " -t ", codes->to, NULL);
 	if (quiet >= 2)
