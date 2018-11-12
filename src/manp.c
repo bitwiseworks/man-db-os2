@@ -978,7 +978,11 @@ char *get_manpath_from_path (const char *path, int mandatory)
 	for (end = p = tmppath; end; p = end + 1) {
 		struct list *mandir_list;
 
+#ifdef __OS2__ // path separator is ;
+		end = strchr (p, ';');
+#else
 		end = strchr (p, ':');
+#endif
 		if (end)
 			*end = '\0';
 
