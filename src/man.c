@@ -991,7 +991,7 @@ static char *get_preprocessors_from_file (pipeline *decomp)
 
 	if (!strncmp (line, PP_COOKIE, 4)) {
 #ifdef __OS2__
-		const char *newline = strchr (line, '\r\n');
+		const char *newline = strchr (line, '\r');
 		if (!newline)
 			newline = strchr (line, '\n');
 #else
