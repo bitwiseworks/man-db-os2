@@ -1858,9 +1858,15 @@ static int format_display_and_save (pipeline *decomp,
 
 	pipeline_wait (decomp);
 	instat = pipeline_wait (format_cmd);
+#ifndef __OS2__
 	if (sav_p)
 		close_cat_stream (sav_p, cat_file, instat);
+#endif
 	pipeline_wait (disp_cmd);
+#ifdef __OS2__
+	if (sav_p)
+		close_cat_stream (sav_p, cat_file, instat);
+#endif
 	return instat;
 }
 #endif /* MAN_CATS */
