@@ -1,5 +1,38 @@
 failures=0
 
+# Keep paths containing backslashes literal unless -e is requested.
+echo () {
+	case ${1-} in
+		-n)
+			shift
+			case ${1-} in
+				-e) shift; printf '%b' "$*" ;;
+				-E) shift; printf '%s' "$*" ;;
+				*) printf '%s' "$*" ;;
+			esac
+			;;
+		-e)
+			shift
+			case ${1-} in
+				-n) shift; printf '%b' "$*" ;;
+				-E) shift; printf '%s\n' "$*" ;;
+				*) printf '%b\n' "$*" ;;
+			esac
+			;;
+		-E)
+			shift
+			case ${1-} in
+				-n) shift; printf '%s' "$*" ;;
+				-e) shift; printf '%b\n' "$*" ;;
+				*) printf '%s\n' "$*" ;;
+			esac
+			;;
+		-ne|-en) shift; printf '%b' "$*" ;;
+		-nE|-En) shift; printf '%s' "$*" ;;
+		*) printf '%s\n' "$*" ;;
+	esac
+}
+
 # Save tests the trouble of exporting variables they set when executing 'run'.
 export LC_ALL
 
