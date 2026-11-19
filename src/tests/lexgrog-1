@@ -15,4 +15,19 @@ echo "$tmpdir/usr/share/man/man1/lextest.1.gz: \"lextest - simple lexgrog test\"
 run $LEXGROG "$tmpdir/usr/share/man/man1/lextest.1.gz" >"$tmpdir/1.out"
 expect_pass 'simple lexgrog test' 'diff -u "$tmpdir/1.exp" "$tmpdir/1.out"'
 
+# Encoding tags force manconv's last-candidate conversion path.
+printf '.\\" -*- coding: utf-8 -*-\n.TH tagged 1\n.SH NAME\ntagged \\- tagged compressed page\n.SH DESCRIPTION\ntest\n' \
+	>"$tmpdir/tagged.1"
+gzip -c <"$tmpdir/tagged.1" >"$tmpdir/tagged.1.gz"
+echo "$tmpdir/tagged.1.gz: \"tagged - tagged compressed page\"" \
+	>"$tmpdir/2.exp"
+status=0
+run $LEXGROG "$tmpdir/tagged.1.gz" >"$tmpdir/2.out" \
+	2>"$tmpdir/2.err" || status=$?
+expect_pass 'tagged compressed page succeeds' '[ "$status" = 0 ]'
+expect_pass 'tagged compressed page parses' \
+	'diff -u "$tmpdir/2.exp" "$tmpdir/2.out"'
+expect_pass 'tagged compressed page has no conversion errors' \
+	'[ ! -s "$tmpdir/2.err" ]'
+
 finish

@@ -108,7 +108,15 @@ static int try_iconv (pipeline *p, const char *try_from_code, const char *to,
 	iconv_t cd_utf8, cd = NULL;
 	int to_utf8 = STREQ (try_to_code, "UTF-8") ||
 		      STRNEQ (try_to_code, "UTF-8//", 7);
+#ifdef __OS2__
+	/* The OS/2 iconv does not support //IGNORE.  This intermediate
+	 * conversion also handles pages with explicit coding tags, which
+	 * bypass the encoding candidates set up by add_manconv().
+	 */
+	const char *utf8_target = "UTF-8";
+#else
 	const char *utf8_target = last ? "UTF-8//IGNORE" : "UTF-8";
+#endif
 	int ignore_errors = (strstr (try_to_code, "//IGNORE") != NULL);;
 	int ret = 0;
 
