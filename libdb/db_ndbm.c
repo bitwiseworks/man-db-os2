@@ -47,11 +47,12 @@
 
 #include "mydbm.h"
 #include "db_storage.h"
+#include "db_flock.h"
 
 /* release the lock and close the database */
 int ndbm_flclose (DBM *db)
 {
-	flock (dbm_dirfno (db), LOCK_UN);
+	db_flock (dbm_dirfno (db), LOCK_UN);
 	dbm_close (db);
 	return 0;
 }
@@ -81,14 +82,14 @@ DBM* ndbm_flopen (char *filename, int flags, int mode)
 		dir_fd = open (dir_fname, flags & ~O_TRUNC, mode);
 		free (dir_fname);
 		if (dir_fd != -1) {
-			if (!(lock_failed = flock (dir_fd, lock_op)))
+			if (!(lock_failed = db_flock (dir_fd, lock_op)))
 				db = dbm_open (filename, flags, mode);
 			close (dir_fd);
 		}
 	} else {
 		db = dbm_open (filename, flags, mode);
 		if (db)
-			lock_failed = flock (dbm_dirfno (db), lock_op);
+			lock_failed = db_flock (dbm_dirfno (db), lock_op);
 	}
 
 	if (!db)

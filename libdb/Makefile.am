@@ -37,6 +37,7 @@ libmandb_la_CPPFLAGS = \
 libmandb_la_SOURCES = \
 	db_btree.c \
 	db_delete.c \
+	db_flock.h \
 	db_gdbm.c \
 	db_lookup.c \
 	db_ndbm.c \
@@ -51,3 +52,9 @@ libmandb_la_LDFLAGS = \
 	-avoid-version -release $(VERSION) -rpath $(pkglibdir) -no-undefined
 
 libmandb_la_LDFLAGS += -buildlevel '$(BUILDLEVEL_INFO)'
+
+check_PROGRAMS = test-lock
+test_lock_SOURCES = test-lock.c
+if !CROSS_COMPILING
+TESTS = $(check_PROGRAMS)
+endif

@@ -52,6 +52,7 @@
 
 #include "mydbm.h"
 #include "db_storage.h"
+#include "db_flock.h"
 
 struct hashtable *loop_check_hash;
 
@@ -64,7 +65,7 @@ struct hashtable *loop_check_hash;
 /* release the lock and close the database */
 int btree_close (DB *db)
 {
-	(void) flock ((db->fd) (db), LOCK_UN);
+	(void) db_flock ((db->fd) (db), LOCK_UN);
 	return (db->close) (db);
 }
 
@@ -119,7 +120,7 @@ DB *btree_flopen (char *filename, int flags, int mode)
 		lock_failed = 1;
 		fd = open (filename, flags & ~O_TRUNC, mode);
 		if (fd != -1) {
-			if (!(lock_failed = flock (fd, lock_op)))
+			if (!(lock_failed = db_flock (fd, lock_op)))
 				db = dbopen (filename, flags, mode,
 					     DB_BTREE, &b);
 			close (fd);
@@ -127,7 +128,7 @@ DB *btree_flopen (char *filename, int flags, int mode)
 	} else {
 		db = dbopen (filename, flags, mode, DB_BTREE, &b);
 		if (db)
-			lock_failed = flock ((db->fd) (db), lock_op);
+			lock_failed = db_flock ((db->fd) (db), lock_op);
 	}
 
 	if (!db)
