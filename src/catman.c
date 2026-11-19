@@ -85,10 +85,6 @@ int quiet = 1;
 MYDBM_FILE dbf_close_post_fork;
 char *manp;
 extern char *user_config_file;
-#ifdef __OS2__
-extern
-#endif
-char *database;
 static const char **sections;
 
 const char *argp_program_version = "catman " PACKAGE_VERSION;

@@ -76,10 +76,6 @@ char *program_name;
 int quiet = 1;
 extern int opt_test;		/* don't update db */
 char *manp;
-#ifdef __OS2__
-extern
-#endif
-char *database = NULL;
 extern char *extension;		/* for globbing.c */
 extern int force_rescan;	/* for check_mandirs.c */
 static char *single_filename = NULL;

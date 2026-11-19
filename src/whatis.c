@@ -85,7 +85,6 @@ static int num_keywords;
 
 char *program_name;
 int am_apropos;
-char *database;
 int quiet = 1;
 
 #ifdef HAVE_ICONV

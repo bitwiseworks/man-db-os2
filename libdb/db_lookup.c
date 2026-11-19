@@ -50,6 +50,8 @@
 #include "mydbm.h"
 #include "db_storage.h"
 
+char *database = NULL;
+
 /* If using ndbm or BTREE, copy the static storage before doing anything
  * interesting with it. If using gdbm, firstkey and nextkey need to copy the
  * storage because our ordered wrappers keep an effectively static copy.
