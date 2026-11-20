@@ -24,6 +24,7 @@
 #  include "config.h"
 #endif /* HAVE_CONFIG_H */
 
+#include <limits.h>
 #include <string.h>
 #include <stdlib.h>
 
@@ -37,6 +38,7 @@
 #include "manconfig.h"
 #include "pathsearch.h"
 
+#ifndef __OS2__
 static int pathsearch (const char *name, const mode_t bits)
 {
 	char *cwd = NULL;
@@ -92,9 +94,17 @@ static int pathsearch (const char *name, const mode_t bits)
 	return ret;
 }
 
+#endif /* !__OS2__ */
+
 int pathsearch_executable (const char *name)
 {
+#ifdef __OS2__
+	char filename[PATH_MAX];
+
+	return _path2 (name, ".exe", filename, sizeof (filename)) == 0;
+#else
 	return pathsearch (name, 0111);
+#endif
 }
 
 int directory_on_path (const char *dir)
