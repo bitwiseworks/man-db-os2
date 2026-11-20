@@ -18,7 +18,8 @@
 ## along with man-db; if not, write to the Free Software Foundation,
 ## Inc., 51 Franklin St, Fifth Floor, Boston, MA  02110-1301  USA
 
-TESTS_ENVIRONMENT = PATH=$(abs_builddir)/..:$$PATH; export PATH; \
+TESTS_ENVIRONMENT = PATH_SEPARATOR="$(PATH_SEPARATOR)"; export PATH_SEPARATOR; \
+		    PATH="$(abs_builddir)/..$(PATH_SEPARATOR)$$PATH"; export PATH; \
 		    DBTYPE=$(DBTYPE); export DBTYPE; \
 		    MANDIR_LAYOUT=$(MANDIR_LAYOUT); export MANDIR_LAYOUT; \
 		    abs_top_builddir=$(abs_top_builddir); export abs_top_builddir; \

@@ -1,3 +1,12 @@
+# Preserve the configure-selected separator, or detect it for direct runs.
+if test "${PATH_SEPARATOR+set}" != set; then
+	PATH_SEPARATOR=:
+	(PATH='/bin;/bin;/@unixroot/usr/bin'; FPATH=$PATH; sh -c :) >/dev/null 2>&1 && {
+		(PATH='/bin:/bin:/@unixroot/usr/bin'; FPATH=$PATH; sh -c :) >/dev/null 2>&1 ||
+			PATH_SEPARATOR=';'
+	}
+fi
+
 failures=0
 
 # Keep paths containing backslashes literal unless -e is requested.
