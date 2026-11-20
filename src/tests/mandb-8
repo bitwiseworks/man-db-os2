@@ -1,0 +1,29 @@
+#! /bin/sh
+
+# Updating an unchanged database must preserve its binary contents.
+
+: ${srcdir=.}
+. "$srcdir/testlib.sh"
+: ${MANDB=mandb}
+
+init
+fake_config /usr/share/man
+db_ext="$(db_ext)"
+write_page test 1 "$tmpdir/usr/share/man/man1/test.1.gz" UTF-8 gz '' \
+	'test \- binary database copy test'
+status=0
+run $MANDB -C "$tmpdir/manpath.config" -u -q "$tmpdir/usr/share/man" || status=$?
+expect_pass 'initial database creation succeeds' '[ "$status" = 0 ]'
+expect_pass 'initial database exists' '[ -f "$tmpdir/usr/share/man/index$db_ext" ]'
+[ "$failures" = 0 ] || finish
+cp "$tmpdir/usr/share/man/index$db_ext" "$tmpdir/original"
+status=0
+run $MANDB -C "$tmpdir/manpath.config" -u -q "$tmpdir/usr/share/man" \
+	>"$tmpdir/update.out" 2>"$tmpdir/update.err" || status=$?
+expect_pass 'incremental database open succeeds' '[ "$status" = 0 ]'
+expect_pass 'incremental update has no database errors' \
+	'[ ! -s "$tmpdir/update.err" ]'
+expect_pass 'unchanged database remains identical' \
+	'cmp "$tmpdir/original" "$tmpdir/usr/share/man/index$db_ext"'
+
+finish

@@ -39,6 +39,7 @@
 #include "xvasprintf.h"
 
 #include "manconfig.h"
+#include "binary_io.h"
 #include "comp_src.h"
 #include "pipeline.h"
 #include "decompress.h"
@@ -49,7 +50,7 @@ static void decompress_zlib (void *data ATTRIBUTE_UNUSED)
 {
 	gzFile zlibfile;
 
-	zlibfile = gzdopen (dup (STDIN_FILENO), "r");
+	zlibfile = gzdopen (dup (STDIN_FILENO), "rb");
 	if (!zlibfile)
 		return;
 
@@ -135,6 +136,8 @@ pipeline *decompress_fdopen (int fd)
 #ifdef HAVE_LIBZ
 	pipecmd *cmd;
 #endif /* HAVE_LIBZ */
+
+	binary_io (fd);
 
 #ifdef HAVE_LIBZ
 	cmd = pipecmd_new_function ("zcat", &decompress_zlib, NULL, NULL);

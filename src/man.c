@@ -93,6 +93,7 @@ int have_cwd;
 #include "pathsearch.h"
 #include "linelength.h"
 #include "decompress.h"
+#include "binary_io.h"
 #include "xregcomp.h"
 #include "security.h"
 #include "encodings.h"
@@ -1528,6 +1529,14 @@ static void squeeze_blank_lines (void *data ATTRIBUTE_UNUSED)
 	char *line = NULL;
 	size_t len = 0;
 
+#ifdef __OS2__
+	/* The final command may inherit text-mode stdout rather than a
+	 * binary pipeline socket.  Preserve CRLF already present in input.
+	 */
+	if (!isatty (STDOUT_FILENO))
+		binary_io (STDOUT_FILENO);
+#endif
+
 	while (getline (&line, &len, stdin) != -1) {
 		int in_blank_line  = 1;
 		int got_blank_line = 0;
@@ -1656,8 +1665,11 @@ static char *tmp_cat_filename (const char *cat_file)
 	if (tmp_cat_fd == -1) {
 		free (name);
 		return NULL;
-	} else
+	} else {
+		/* The cache may receive compressed bytes through this handle. */
+		binary_io (tmp_cat_fd);
 		return name;
+	}
 }
 
 

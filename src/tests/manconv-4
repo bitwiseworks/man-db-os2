@@ -1,0 +1,27 @@
+#! /bin/sh
+
+# Compressed input and multibyte output must survive text-mode defaults.
+
+: ${srcdir=.}
+. "$srcdir/testlib.sh"
+: ${MANCONV=manconv}
+
+init
+printf 'first\nsecond\n' >"$tmpdir/input"
+# UCS-2LE is supported by both LIBCn and GNU iconv.  Its newline bytes
+# expose text-mode translation just as UTF-16LE would for this input.
+iconv -f UTF-8 -t UCS-2LE <"$tmpdir/input" >"$tmpdir/expected" || exit 1
+gzip -c <"$tmpdir/input" >"$tmpdir/input.gz" || exit 1
+
+# Multiple candidates keep the first UTF-8 attempt strict, independently
+# of whether the platform's iconv supports the //IGNORE extension.
+run $MANCONV -f UTF-8:ISO-8859-1 -t UCS-2LE "$tmpdir/input.gz" \
+	>"$tmpdir/output"
+expect_pass 'compressed input with UCS-2LE output' \
+	'cmp "$tmpdir/expected" "$tmpdir/output"'
+run $MANCONV -f UTF-8:ISO-8859-1 -t UCS-2LE <"$tmpdir/input.gz" \
+	>"$tmpdir/output"
+expect_pass 'compressed stdin with UCS-2LE output' \
+	'cmp "$tmpdir/expected" "$tmpdir/output"'
+
+finish

@@ -162,7 +162,7 @@ W	[ \t]
 		}
 		
 
-<so>\"?[^ \t\n\"]+\"?	{ 	/* file names including whitespace ?  */
+<so>\"?[^ \t\r\n\"]+\"?	{ 	/* file names including whitespace ?  */
 			if (so_stack_ptr == MAX_SO_DEPTH - 1) 
 				error (FATAL, 0, 
 				       _("%s:%d: .so requests nested too "
@@ -194,12 +194,12 @@ W	[ \t]
 
 		}
 
-<end_request>{W}*\n	{
+<end_request>{W}*\r?\n	{
 			no_newline = 0;
 			BEGIN (INITIAL);
 		}
 		
-<so>\n		{
+<so>\r?\n		{
 			no_newline = 0;
 			error (OK, 0,
 			       _("%s:%d: warning: newline in .so request, "
@@ -236,7 +236,7 @@ W	[ \t]
 			BEGIN (lfname);
 		}
 
-<lfname>\"?[^ \t\n\"]+\"?	{	/* file names including whitespace ?? */
+<lfname>\"?[^ \t\r\n\"]+\"?	{	/* file names including whitespace ?? */
 			no_newline = 1;
 			ECHO;
 			putchar ('\n');
@@ -252,7 +252,7 @@ W	[ \t]
 			ECHO;
 		}
 
-<lfname>\n	{
+<lfname>\r?\n	{
 			no_newline = 0;
 			putchar ('\n');
 			LINE++;
@@ -269,7 +269,7 @@ W	[ \t]
 			BEGIN (INITIAL);
 		}
 
-<lfnumber>\n	{
+<lfnumber>\r?\n	{
 			no_newline = 0;
 			error (OK, 0,
 			       _("%s:%d: warning: newline in .lf request, "

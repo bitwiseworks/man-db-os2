@@ -237,7 +237,7 @@ static int xcopy (const char *from, const char *to)
 	char *buf;
 	int ret = 0;
 
-	ifp = fopen (from, "r");
+	ifp = fopen (from, "rb");
 	if (!ifp) {
 		ret = -errno;
 		if (errno == ENOENT)
@@ -256,7 +256,7 @@ static int xcopy (const char *from, const char *to)
 		times[1].tv_nsec = UTIME_OMIT;
 	}
 
-	ofp = fopen (to, "w");
+	ofp = fopen (to, "wb");
 	if (!ofp) {
 		ret = -errno;
 		error (0, errno, "fopen %s", to);

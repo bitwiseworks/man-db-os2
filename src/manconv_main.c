@@ -41,6 +41,7 @@
 #include "error.h"
 #include "pipeline.h"
 #include "decompress.h"
+#include "binary_io.h"
 
 #include "manconv.h"
 
@@ -169,6 +170,8 @@ int main (int argc, char *argv[])
 		p = decompress_fdopen (dup (STDIN_FILENO));
 	pipeline_start (p);
 
+	/* Conversion output may contain arbitrary multibyte sequences. */
+	binary_io (STDOUT_FILENO);
 	manconv (p, from_code, to_code);
 
 	for (try_from_code = from_code; *try_from_code; ++try_from_code)
