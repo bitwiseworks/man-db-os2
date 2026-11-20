@@ -10,7 +10,7 @@
 
 init
 fake_config /usr/local/man /usr/share/man
-MANPATH="$tmpdir/usr/local/man:$tmpdir/usr/share/man"
+MANPATH="$tmpdir/usr/local/man${PATH_SEPARATOR}$tmpdir/usr/share/man"
 export MANPATH
 
 write_page md5sum 1 "$tmpdir/usr/share/man/man1/md5sum.1.gz" \

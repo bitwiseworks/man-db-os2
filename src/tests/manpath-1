@@ -1,0 +1,51 @@
+#! /bin/sh
+
+# Search paths use the configured separator, including default-path markers.
+
+: ${srcdir=.}
+. "$srcdir/testlib.sh"
+: ${MANPATH_PROGRAM=manpath}
+
+init
+fake_config /default
+mkdir -p "$tmpdir/first" "$tmpdir/default" "$tmpdir/last"
+MAN_TEST_DISABLE_PATH=1
+export MAN_TEST_DISABLE_PATH
+
+for placement in explicit prepend append insert; do
+	case $placement in
+		explicit)
+			MANPATH="$tmpdir/first${PATH_SEPARATOR}$tmpdir/last"
+			expected="$MANPATH"
+			;;
+		prepend)
+			MANPATH="${PATH_SEPARATOR}$tmpdir/last"
+			expected="$tmpdir/default${PATH_SEPARATOR}$tmpdir/last"
+			;;
+		append)
+			MANPATH="$tmpdir/first${PATH_SEPARATOR}"
+			expected="$tmpdir/first${PATH_SEPARATOR}$tmpdir/default"
+			;;
+		insert)
+			MANPATH="$tmpdir/first${PATH_SEPARATOR}${PATH_SEPARATOR}$tmpdir/last"
+			expected="$tmpdir/first${PATH_SEPARATOR}$tmpdir/default${PATH_SEPARATOR}$tmpdir/last"
+			;;
+	esac
+	export MANPATH
+	printf '%s\n' "$expected" >"$tmpdir/expected"
+	run $MANPATH_PROGRAM -q -C "$tmpdir/manpath.config" >"$tmpdir/output"
+	expect_pass "$placement manpath list" \
+		'cmp "$tmpdir/expected" "$tmpdir/output"'
+done
+
+cat >>"$tmpdir/manpath.config" <<EOF
+MANDB_MAP $tmpdir/first $tmpdir/cat-first
+MANDB_MAP $tmpdir/last $tmpdir/cat-last
+EOF
+MANPATH="$tmpdir/first${PATH_SEPARATOR}$tmpdir/last"
+printf '%s\n' "$tmpdir/cat-first${PATH_SEPARATOR}$tmpdir/cat-last" >"$tmpdir/expected"
+run $MANPATH_PROGRAM -q -c -C "$tmpdir/manpath.config" >"$tmpdir/output"
+expect_pass 'catpath uses configured separator' \
+	'cmp "$tmpdir/expected" "$tmpdir/output"'
+
+finish

@@ -170,4 +170,23 @@ EOF
 expect_pass 'wildcards: MANDATORY_MANPATH: with wildcards: check existing man page II' \
     'diff -u "$tmpdir/1.exp" "$tmpdir/1.out"'
 
+# Multiple explicit roots must not split a drive-letter path on OS/2.
+run $MAN -C "$tmpdir/manpath.config" -aw \
+    -M "$tmpdir/usr/share/man${PATH_SEPARATOR}$tmpdir/usr/share/prog/a/man" \
+    manpathx > "$tmpdir/1.out"
+printf '%s\n' "$abstmpdir/usr/share/prog/a/man/man1/manpathx.1.gz" > "$tmpdir/1.exp"
+expect_pass 'multiple manual roots use the configured separator' \
+    'diff -u "$tmpdir/1.exp" "$tmpdir/1.out"'
+
+# A backslash in a directory name must survive wildcard expansion. On OS/2
+# it is a directory separator; on Unix it is a literal filename character.
+backslash_root="$tmpdir/\\tree"
+write_page backslash 1 "$backslash_root/a/man/man1/backslash.1.gz" \
+    UTF-8 gz '' 'backslash \- backslash path test'
+run $MAN -C "$tmpdir/manpath.config" -aw \
+    -M "$backslash_root/*/man" backslash > "$tmpdir/1.out"
+printf '%s\n' "$abstmpdir/\\tree/a/man/man1/backslash.1.gz" > "$tmpdir/1.exp"
+expect_pass 'wildcard expansion preserves backslashes in manual roots' \
+    'diff -u "$tmpdir/1.exp" "$tmpdir/1.out"'
+
 finish

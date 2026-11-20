@@ -33,6 +33,9 @@
 #ifndef MANCONFIG_H
 #define MANCONFIG_H
 
+/* Separator for executable and manual-page search path lists. */
+#define PATH_SEPARATOR "@PATH_SEPARATOR@"
+
 #include "xvasprintf.h"
 
 /* STD_SECTIONS must contain all of your man hierarchy subdirectories. The

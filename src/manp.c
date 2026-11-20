@@ -59,6 +59,7 @@
 #include <unistd.h>
 
 #include "canonicalize.h"
+#include "filename.h"
 #include "xgetcwd.h"
 #include "xvasprintf.h"
 
@@ -286,8 +287,8 @@ static char *pathappend (char *oldpath, const char *appendage)
 		char *oldpathtok = xstrdup (oldpath), *tok;
 		char *app_dedup = xstrdup (appendage);
 		char *oldpathtok_ptr = oldpathtok;
-		for (tok = strsep (&oldpathtok_ptr, ":"); tok;
-		     tok = strsep (&oldpathtok_ptr, ":")) {
+		for (tok = strsep (&oldpathtok_ptr, PATH_SEPARATOR); tok;
+		     tok = strsep (&oldpathtok_ptr, PATH_SEPARATOR)) {
 			char *search;
 			if (!*tok)	    /* ignore empty fields */
 				continue;
@@ -298,10 +299,10 @@ static char *pathappend (char *oldpath, const char *appendage)
 					/* End of the string, so chop here. */
 					*search = 0;
 					while (search > app_dedup &&
-					       *--search == ':')
+					       *--search == PATH_SEPARATOR[0])
 						*search = 0;
 					break;
-				} else if (*terminator == ':') {
+				} else if (*terminator == PATH_SEPARATOR[0]) {
 					char *newapp;
 					*search = 0;
 					newapp = xasprintf ("%s%s", app_dedup,
@@ -314,11 +315,11 @@ static char *pathappend (char *oldpath, const char *appendage)
 		}
 		free (oldpathtok);
 		if (!STREQ (appendage, app_dedup))
-			debug ("%s:%s reduced to %s%s%s\n",
+			debug ("%s" PATH_SEPARATOR "%s reduced to %s%s%s\n",
 			       oldpath, appendage,
-			       oldpath, *app_dedup ? ":" : "", app_dedup);
+			       oldpath, *app_dedup ? PATH_SEPARATOR : "", app_dedup);
 		if (*app_dedup)
-			oldpath = appendstr (oldpath, ":", app_dedup, NULL);
+			oldpath = appendstr (oldpath, PATH_SEPARATOR, app_dedup, NULL);
 		free (app_dedup);
 		return oldpath;
 	} else
@@ -348,14 +349,15 @@ static void gripe_overlong_list (void)
 	error (FAIL, 0, _("manpath list too long"));
 }
 
-/* accept a manpath list, separated with ':', return the associated 
+/* accept a manpath list, separated with PATH_SEPARATOR, return the associated
    catpath list */
 char *cat_manpath (char *manp)
 {
 	char *catp = NULL;
 	const char *path, *catdir;
 
-	for (path = strsep (&manp, ":"); path; path = strsep (&manp, ":")) {
+	for (path = strsep (&manp, PATH_SEPARATOR); path;
+	     path = strsep (&manp, PATH_SEPARATOR)) {
 		catdir = get_from_list (path, MANDB_MAP_USER);
 		if (!catdir)
 			catdir = get_from_list (path, MANDB_MAP);
@@ -454,8 +456,8 @@ static char *get_nls_manpath (const char *manpathlist, const char *locale)
 
 	manpathlist_copy = xstrdup (manpathlist);
 	manpathlist_ptr = manpathlist_copy;
-	for (path = strsep (&manpathlist_ptr, ":"); path;
-	     path = strsep (&manpathlist_ptr, ":")) {
+	for (path = strsep (&manpathlist_ptr, PATH_SEPARATOR); path;
+	     path = strsep (&manpathlist_ptr, PATH_SEPARATOR)) {
 		DIR *mandir = opendir (path);
 		struct dirent *mandirent;
 
@@ -556,7 +558,7 @@ char *add_nls_manpaths (const char *manpathlist, const char *locales)
 		locale_manpath = get_nls_manpath (manpathlist, tok);
 		if (locale_manpath) {
 			if (manpath)
-				manpath = appendstr (manpath, ":",
+				manpath = appendstr (manpath, PATH_SEPARATOR,
 						     locale_manpath, NULL);
 			else
 				manpath = xstrdup (locale_manpath);
@@ -569,7 +571,7 @@ char *add_nls_manpaths (const char *manpathlist, const char *locales)
 	locale_manpath = get_nls_manpath (manpathlist, "C");
 	if (locale_manpath) {
 		if (manpath)
-			manpath = appendstr (manpath, ":",
+			manpath = appendstr (manpath, PATH_SEPARATOR,
 					     locale_manpath, NULL);
 		else
 			manpath = xstrdup (locale_manpath);
@@ -608,7 +610,7 @@ static char *add_system_manpath (const char *systems, const char *manpathlist)
 				int status;
 				char *element;
 
-				next = strchr (path, ':');
+				next = strchr (path, PATH_SEPARATOR[0]);
 				if (next) {
 					element = xstrndup (path, next - path);
 					++next;
@@ -708,7 +710,7 @@ char *get_manpath (const char *systems)
 		char *system1, *system2, *guessed;
 		char *pos;
 		/* This must be it. */
-		if (manpathlist[0] == ':') {
+		if (manpathlist[0] == PATH_SEPARATOR[0]) {
 			if (!quiet)
 				error (0, 0,
 				       _("warning: $MANPATH set, "
@@ -719,7 +721,8 @@ char *get_manpath (const char *systems)
 			manpathlist = xasprintf ("%s%s", guessed, system1);
 			free (guessed);
 			free (system1);
-		} else if (manpathlist[strlen (manpathlist) - 1] == ':') {
+		} else if (manpathlist[strlen (manpathlist) - 1] ==
+			   PATH_SEPARATOR[0]) {
 			if (!quiet)
 				error (0, 0,
 				       _("warning: $MANPATH set, "
@@ -730,7 +733,8 @@ char *get_manpath (const char *systems)
 			manpathlist = xasprintf ("%s%s", system1, guessed);
 			free (guessed);
 			free (system1);
-		} else if ((pos = strstr (manpathlist,"::"))) {
+		} else if ((pos = strstr (manpathlist,
+				  PATH_SEPARATOR PATH_SEPARATOR))) {
 			*(pos++) = '\0';
 			if (!quiet)
 				error (0, 0,
@@ -740,8 +744,8 @@ char *get_manpath (const char *systems)
 			system1 = add_system_manpath (systems, manpathlist);
 			guessed = guess_manpath (systems);
 			system2 = add_system_manpath (systems, pos);
-			manpathlist = xasprintf ("%s:%s%s", system1, guessed,
-						 system2);
+			manpathlist = xasprintf ("%s" PATH_SEPARATOR "%s%s",
+						 system1, guessed, system2);
 			free (system2);
 			free (guessed);
 			free (system1);
@@ -978,11 +982,7 @@ char *get_manpath_from_path (const char *path, int mandatory)
 	for (end = p = tmppath; end; p = end + 1) {
 		struct list *mandir_list;
 
-#ifdef __OS2__ // path separator is ;
-		end = strchr (p, ';');
-#else
-		end = strchr (p, ':');
-#endif
+		end = strchr (p, PATH_SEPARATOR[0]);
 		if (end)
 			*end = '\0';
 
@@ -1068,7 +1068,7 @@ char *get_manpath_from_path (const char *path, int mandatory)
 		free (*lp);
 		*lp = NULL;
 		p += len;
-		*p++ = ':';
+		*p++ = PATH_SEPARATOR[0];
 		lp++;
 	}
 
@@ -1185,7 +1185,7 @@ static char **add_dir_to_path_list (char **mphead, char **mp, const char *p)
 			gripe_not_directory (d);
 		else {
 			/* deal with relative paths */
-			if (*d != '/') {
+			if (!IS_ABSOLUTE_PATH (d)) {
 				cwd = xgetcwd ();
 				if (!cwd)
 					error (FATAL, errno,
@@ -1212,7 +1212,7 @@ void create_pathlist (const char *manp, char **mp)
 	/* Expand the manpath into a list for easier handling. */
 
 	for (p = manp;; p = end + 1) {
-		end = strchr (p, ':');
+		end = strchr (p, PATH_SEPARATOR[0]);
 		if (end) {
 			char *element = xstrndup (p, end - p);
 			mp = add_dir_to_path_list (mphead, mp, element);
@@ -1278,7 +1278,7 @@ void create_pathlist (const char *manp, char **mp)
 				debug ("%s", *mp);
 				first = 0;
 			} else
-				debug (":%s", *mp);
+				debug (PATH_SEPARATOR "%s", *mp);
 		}
 		debug ("\n");
 	}

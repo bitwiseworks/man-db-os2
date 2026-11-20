@@ -62,8 +62,8 @@ static int pathsearch (const char *name, const mode_t bits)
 	pathtok = path = xstrdup (path);
 
 	/* Unqualified name; iterate over $PATH looking for it. */
-	for (element = strsep (&pathtok, ":"); element;
-	     element = strsep (&pathtok, ":")) {
+	for (element = strsep (&pathtok, PATH_SEPARATOR); element;
+	     element = strsep (&pathtok, PATH_SEPARATOR)) {
 		char *filename;
 
 		if (!*element) {
@@ -111,8 +111,8 @@ int directory_on_path (const char *dir)
 
 	pathtok = path = xstrdup (path);
 
-	for (element = strsep (&pathtok, ":"); element;
-	     element = strsep (&pathtok, ":")) {
+	for (element = strsep (&pathtok, PATH_SEPARATOR); element;
+	     element = strsep (&pathtok, PATH_SEPARATOR)) {
 		if (!*element) {
 			if (!cwd)
 				cwd = xgetcwd ();

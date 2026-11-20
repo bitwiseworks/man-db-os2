@@ -14,7 +14,7 @@ cat >>"$tmpdir/manpath.config" <<EOF
 MANPATH_MAP	$tmpdir/usr/bin		$tmpdir/usr/share/man
 MANPATH_MAP	$tmpdir/usr/local/bin	$tmpdir/usr/local/man
 EOF
-MANPATH="$tmpdir/usr/share/man:$tmpdir/usr/local/man"
+MANPATH="$tmpdir/usr/share/man${PATH_SEPARATOR}$tmpdir/usr/local/man"
 export MANPATH
 
 write_page test 1 "$tmpdir/usr/share/man/man1/test.1.gz" \
@@ -25,7 +25,7 @@ mkdir -p "$tmpdir/usr/bin" "$tmpdir/usr/local/bin"
 touch "$tmpdir/usr/bin/test" "$tmpdir/usr/local/bin/test"
 chmod +x "$tmpdir/usr/bin/test" "$tmpdir/usr/local/bin/test"
 run $MANDB -C "$tmpdir/manpath.config" -u -q \
-	"$tmpdir/usr/share/man:$tmpdir/usr/local/man"
+	"$tmpdir/usr/share/man${PATH_SEPARATOR}$tmpdir/usr/local/man"
 
 cat >"$tmpdir/1.exp" <<EOF
 test (1)             - /usr/bin/test

@@ -432,7 +432,10 @@ char **expand_path (const char *path)
 	glob_t globbuf;
 	size_t i;
 
-	res = glob (path, GLOB_NOCHECK, NULL, &globbuf);
+	/* Backslashes are path characters (and directory separators on OS/2),
+	 * not quoting for the wildcard pattern.
+	 */
+	res = glob (path, GLOB_NOCHECK | GLOB_NOESCAPE, NULL, &globbuf);
 	/* if glob failed, return the given path */
 	if (res != 0) {
 		result = XNMALLOC (2, char *);
