@@ -56,6 +56,7 @@
 
 #include "argp.h"
 #include "dirname.h"
+#include "filename.h"
 #include "fnmatch.h"
 #include "xvasprintf.h"
 
@@ -513,7 +514,7 @@ static int suitable_manpath (const char *manpath, const char *page_dir)
 
 	ret = 0;
 	for (mp = page_manpathlist; *mp; ++mp) {
-		if (STREQ (*mp, manpath)) {
+		if (path_equal (*mp, manpath)) {
 			ret = 1;
 			break;
 		}
@@ -535,7 +536,7 @@ static void do_whatis (MYDBM_FILE dbf,
 		char *page = xstrdup (pages[i]);
 		struct stat st;
 
-		if (strchr (page, '/') && stat (page, &st) == 0 &&
+		if (IS_PATH_WITH_DIR (page) && stat (page, &st) == 0 &&
 		    !S_ISDIR (st.st_mode) &&
 		    st.st_mode & (S_IXUSR | S_IXGRP | S_IXOTH)) {
 			/* Perhaps an executable.  If its directory is on

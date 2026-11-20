@@ -23,6 +23,9 @@
 #ifndef PATHSEARCH_H
 #define PATHSEARCH_H
 
+/* Compare path spellings, ignoring case and slash style on OS/2. */
+int path_equal (const char *a, const char *b);
+
 /* Return non-zero if NAME is found as an executable regular file on the
  * $PATH.
  */

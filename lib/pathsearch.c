@@ -38,6 +38,26 @@
 #include "manconfig.h"
 #include "pathsearch.h"
 
+int path_equal (const char *a, const char *b)
+{
+#ifdef __OS2__
+	for (;;) {
+		size_t part = strcspn (a, "/\\");
+
+		if (strnicmp (a, b, part) != 0)
+			return 0;
+		if (!a[part])
+			return !b[part];
+		if (b[part] != '/' && b[part] != '\\')
+			return 0;
+		a += part + 1;
+		b += part + 1;
+	}
+#else
+	return STREQ (a, b);
+#endif
+}
+
 #ifndef __OS2__
 static int pathsearch (const char *name, const mode_t bits)
 {
@@ -129,7 +149,7 @@ int directory_on_path (const char *dir)
 			element = cwd;
 		}
 
-		if (STREQ (element, dir)) {
+		if (path_equal (element, dir)) {
 			ret = 1;
 			break;
 		}

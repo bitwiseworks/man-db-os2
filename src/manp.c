@@ -76,6 +76,7 @@
 #endif
 
 #include "manp.h"
+#include "pathsearch.h"
 #include "globbing.h"
 
 struct list {
@@ -140,7 +141,9 @@ static struct list *iterate_over_list (struct list *prev, char *key, int flag)
 	struct list *list;
 
 	for (list = prev ? prev->next : namestore; list; list = list->next)
-		if (flag == list->flag && STREQ (key, list->key))
+		if (flag == list->flag &&
+		    (flag == MANPATH_MAP ? path_equal (key, list->key) :
+					   STREQ (key, list->key)))
 			return list;
 
 	return NULL;
