@@ -117,6 +117,19 @@ accessdb_filter () {
 		sed 's/\(-> "[^ ][^ ]* [^ ][^ ]* [^ ][^ ]* \)[^ ][^ ]* [^ ][^ ]* /\1MTIME /'
 }
 
+# Canonicalize newline-separated paths while retaining their order.
+normalize_paths () {
+	while IFS= read -r test_path || [ -n "$test_path" ]; do
+		realpath "$test_path" || return 1
+	done
+}
+
+compare_paths () {
+	normalize_paths <"$1" >"$1.real" &&
+	normalize_paths <"$2" >"$2.real" &&
+	diff -u "$1.real" "$2.real"
+}
+
 expect_pass () {
 	ret=0
 	eval "$2" || ret=$?
