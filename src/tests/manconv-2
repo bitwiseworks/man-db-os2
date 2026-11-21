@@ -9,6 +9,12 @@
 
 init
 
+# LIBCn iconv does not provide the strict invalid-sequence handling and
+# GNU //IGNORE behavior required by these encoding fallback tests.
+case $(uname -s) in
+	OS/2*) skip 'LIBCn iconv lacks required conversion semantics' ;;
+esac
+
 (for x in $(seq 160 255); do
 	printf "\\$(printf %03o "$x")"
 done
