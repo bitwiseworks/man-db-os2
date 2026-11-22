@@ -250,8 +250,14 @@ void free_ult_trace (struct ult_trace *trace)
  * name is full pathname, path is the MANPATH directory (/usr/man)
  * flags is a combination of SO_LINK | SOFT_LINK | HARD_LINK
  */
+#ifdef ENABLE_INPROCESS_MANPAGES
+const char *ult_src_with_page (const char *name, const char *path,
+		struct stat *buf, int flags, struct ult_trace *trace,
+		struct decompressed_page **page)
+#else
 const char *ult_src (const char *name, const char *path,
 		     struct stat *buf, int flags, struct ult_trace *trace)
+#endif
 {
 	static char *base;		/* must be static */
 	static short recurse; 		/* must be static */
@@ -329,7 +335,10 @@ const char *ult_src (const char *name, const char *path,
 	if (flags & SO_LINK) {
 		const char *buffer;
 		char *decomp_base;
-		pipeline *decomp;
+		pipeline *decomp = NULL;
+#ifdef ENABLE_INPROCESS_MANPAGES
+		struct decompressed_page *input = NULL;
+#endif /* ENABLE_INPROCESS_MANPAGES */
 		char *include;
 #ifdef COMP_SRC
 		struct stat st;
@@ -354,21 +363,56 @@ const char *ult_src (const char *name, const char *path,
 		 * decompress_open doesn't keep its own copy.
 		 */
 		decomp_base = xstrdup (base);
-		decomp = decompress_open (decomp_base);
-		if (!decomp) {
-			if (quiet < 2)
-				error (0, errno, _("can't open %s"), base);
-			free (decomp_base);
-			return NULL;
+#ifdef ENABLE_INPROCESS_MANPAGES
+		if (page) {
+			int opened = decompressed_page_open (base, &input);
+			if (opened < 0) {
+				if (quiet < 2)
+					error (0, errno, _("can't open %s"), base);
+				free (decomp_base);
+				return NULL;
+			}
 		}
-		pipeline_start (decomp);
+		if (input) {
+			buffer = input->data;
+			while (STRNEQ (buffer, ".\\\"", 3)) {
+				const char *next = strchr (buffer, '\n');
+				if (!next) {
+					buffer = NULL;
+					break;
+				}
+				buffer = next + 1;
+			}
+		} else {
+#endif
+			decomp = decompress_open (decomp_base);
+			if (!decomp) {
+				if (quiet < 2)
+					error (0, errno, _("can't open %s"), base);
+				free (decomp_base);
+				return NULL;
+			}
+			pipeline_start (decomp);
 
-		/* make sure that we skip over any comments */
-		do {
-			buffer = pipeline_readline (decomp);
-		} while (buffer && STRNEQ (buffer, ".\\\"", 3));
+			/* make sure that we skip over any comments */
+			do {
+				buffer = pipeline_readline (decomp);
+			} while (buffer && STRNEQ (buffer, ".\\\"", 3));
+#ifdef ENABLE_INPROCESS_MANPAGES
+		}
+#endif
 
-		include = test_for_include (buffer);
+#ifdef ENABLE_INPROCESS_MANPAGES
+		if (input && buffer) {
+			/* The pipeline path supplies one line.  Do not let the
+			 * include parser skip whitespace into the following line.
+			 */
+			char *line = xstrndup (buffer, strcspn (buffer, "\n"));
+			include = test_for_include (line);
+			free (line);
+		} else
+#endif
+			include = test_for_include (buffer);
 		if (include) {
 			char *new_name;
 			const char *ult;
@@ -384,18 +428,41 @@ const char *ult_src (const char *name, const char *path,
 			 * a recursive call, as it may be freed.
 			 */
 			new_name = xstrdup (base);
+#ifdef ENABLE_INPROCESS_MANPAGES
+			decompressed_page_free (input);
+			input = NULL;
+			ult = ult_src_with_page (new_name, path, NULL, flags,
+					 trace, page);
+#else
 			ult = ult_src (new_name, path, NULL, flags, trace);
+#endif
 			free (new_name);
 			recurse--;
 
-			pipeline_wait (decomp);
-			pipeline_free (decomp);
+#ifdef ENABLE_INPROCESS_MANPAGES
+			if (decomp) {
+#endif
+				pipeline_wait (decomp);
+				pipeline_free (decomp);
+#ifdef ENABLE_INPROCESS_MANPAGES
+			}
+#endif
 			free (decomp_base);
 			return ult;
 		}
 
-		pipeline_wait (decomp);
-		pipeline_free (decomp);
+#ifdef ENABLE_INPROCESS_MANPAGES
+		if (decomp) {
+#endif
+			pipeline_wait (decomp);
+			pipeline_free (decomp);
+#ifdef ENABLE_INPROCESS_MANPAGES
+		}
+#endif
+#ifdef ENABLE_INPROCESS_MANPAGES
+		if (page)
+			*page = input;
+#endif /* ENABLE_INPROCESS_MANPAGES */
 		free (decomp_base);
 	}
 
@@ -404,3 +471,11 @@ const char *ult_src (const char *name, const char *path,
 		ult_trace (trace, base);
 	return base;
 }
+
+#ifdef ENABLE_INPROCESS_MANPAGES
+const char *ult_src (const char *name, const char *path,
+		     struct stat *buf, int flags, struct ult_trace *trace)
+{
+	return ult_src_with_page (name, path, buf, flags, trace, NULL);
+}
+#endif /* ENABLE_INPROCESS_MANPAGES */

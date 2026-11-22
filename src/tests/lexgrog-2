@@ -1,0 +1,90 @@
+#! /bin/sh
+
+# Buffered plain/gzip sources, encoding fallback, and mixed .so chains.
+: ${srcdir=.}
+. "$srcdir/testlib.sh"
+: ${LEXGROG=lexgrog}
+init
+root="$tmpdir/usr/share/man"
+write_page lextest 1 "$root/man1/plain.1" UTF-8 '' '' \
+	'lextest \- buffered source'
+write_page lextest 1 "$root/man1/gzip.1.gz" UTF-8 gz '' \
+	'lextest \- buffered source'
+write_page lextest 1 "$root/man1/latin.1.gz" ISO-8859-1 gz \
+	'-*- coding: ISO-8859-1 -*-' 'lextest \- café'
+printf '.\\" comment\r\n.so man1/gzip.1.gz\r\n' | gzip -c \
+	>"$root/man1/alias.1.gz"
+printf '.so man1/alias.1.gz\n' | gzip -c >"$root/man1/chain.1.gz"
+# One invocation also checks that scanner/encoding state resets per page.
+: >"$tmpdir/expected"
+for page in plain.1 gzip.1.gz alias.1.gz chain.1.gz; do
+	echo "$root/man1/$page: \"lextest - buffered source\"" \
+		>>"$tmpdir/expected"
+done
+echo "$root/man1/latin.1.gz: \"lextest - café\"" >>"$tmpdir/expected"
+status=0
+run $LEXGROG "$root/man1/plain.1" "$root/man1/gzip.1.gz" \
+	"$root/man1/alias.1.gz" "$root/man1/chain.1.gz" \
+	"$root/man1/latin.1.gz" >"$tmpdir/output" 2>"$tmpdir/errors" || status=$?
+expect_pass 'buffered sources and encoding tags succeed' '[ "$status" = 0 ]'
+expect_pass 'buffered sources and .so chains parse correctly' \
+	'diff -u "$tmpdir/expected" "$tmpdir/output"'
+expect_pass 'buffered sources produce no errors' '[ ! -s "$tmpdir/errors" ]'
+
+# A later malformed byte must not discard a valid NAME section.  Explicit
+# UTF-8 also exercises the original path's conversion bypass, independent
+# of the test machine's locale.  Follow with a valid page to check reset.
+printf '.TH lextest 1\n.SH NAME\nlextest \\- valid name before bad body\n.SH DESCRIPTION\nbad byte: \377\n' |
+	gzip -c >"$root/man1/bad-body.1.gz"
+{
+	echo "$root/man1/bad-body.1.gz: \"lextest - valid name before bad body\""
+	echo "$root/man1/plain.1: \"lextest - buffered source\""
+} >"$tmpdir/bad-body.exp"
+status=0
+run $LEXGROG -E UTF-8 "$root/man1/bad-body.1.gz" "$root/man1/plain.1" \
+	>"$tmpdir/bad-body.out" 2>"$tmpdir/bad-body.err" || status=$?
+expect_pass 'invalid body falls back without losing NAME' '[ "$status" = 0 ]'
+expect_pass 'conversion fallback preserves output and scanner state' \
+	'diff -u "$tmpdir/bad-body.exp" "$tmpdir/bad-body.out"'
+expect_pass 'successful conversion fallback is silent' \
+	'[ ! -s "$tmpdir/bad-body.err" ]'
+
+# Include detection must see one line, not skip an empty line and mistake
+# a later .so request for a whole-page alias.
+printf '\n.so man1/missing.1\n.TH lextest 1\n.SH NAME\nlextest \\- blank first line\n.SH DESCRIPTION\ntest\n' |
+	gzip -c >"$root/man1/blank.1.gz"
+echo "$root/man1/blank.1.gz: \"lextest - blank first line\"" \
+	>"$tmpdir/blank.exp"
+status=0
+run $LEXGROG "$root/man1/blank.1.gz" >"$tmpdir/blank.out" \
+	2>"$tmpdir/blank.err" || status=$?
+expect_pass 'blank first line does not follow a later .so' '[ "$status" = 0 ]'
+expect_pass 'blank first line preserves NAME' \
+	'diff -u "$tmpdir/blank.exp" "$tmpdir/blank.out"'
+expect_pass 'later .so produces no missing-target error' \
+	'[ ! -s "$tmpdir/blank.err" ]'
+
+if [ "${INPROCESS_MANPAGES:-no}" = yes ]; then
+	# Only the buffered reader promises to reject a truncated gzip trailer.
+	size=$(wc -c <"$root/man1/gzip.1.gz")
+	dd if="$root/man1/gzip.1.gz" of="$root/man1/broken.1.gz" \
+		bs=1 count=$((size - 5)) 2>/dev/null
+	expect_pass 'truncated gzip fails' \
+		'! run $LEXGROG "$root/man1/broken.1.gz" >/dev/null 2>&1'
+fi
+printf '.so man1/loop.1.gz\n' | gzip -c >"$root/man1/loop.1.gz"
+expect_pass '.so recursion is bounded' \
+	'! run $LEXGROG "$root/man1/loop.1.gz" >/dev/null 2>&1'
+
+if command -v bzip2 >/dev/null 2>&1; then
+	write_page lextest 1 "$root/man1/fallback.1.bz2" UTF-8 bz2 '' \
+		'lextest \- pipeline fallback'
+	printf '.so man1/fallback.1.bz2\n' | gzip -c \
+		>"$root/man1/mixed.1.gz"
+	echo "$root/man1/mixed.1.gz: \"lextest - pipeline fallback\"" \
+		>"$tmpdir/fallback.exp"
+	run $LEXGROG "$root/man1/mixed.1.gz" >"$tmpdir/fallback.out"
+	expect_pass 'gzip .so to pipeline format' \
+		'diff -u "$tmpdir/fallback.exp" "$tmpdir/fallback.out"'
+fi
+finish

@@ -31,6 +31,7 @@
 #include <sys/stat.h>
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 
 #ifdef HAVE_LIBZ
 #  include "zlib.h"
@@ -150,3 +151,111 @@ pipeline *decompress_fdopen (int fd)
 	pipeline_want_out (p, -1);
 	return p;
 }
+
+#ifdef ENABLE_INPROCESS_MANPAGES
+/* Read once into a heap buffer so source resolution and NAME parsing can
+ * share the same bytes, without a decompressor child or a second open.
+ */
+int decompressed_page_open (const char *filename,
+			    struct decompressed_page **page)
+{
+	const char *ext = strrchr (filename, '.');
+	struct compression *comp;
+	struct stat st;
+	struct decompressed_page *p;
+	FILE *fp = NULL;
+#ifdef HAVE_LIBZ
+	gzFile gz = NULL;
+#endif
+	size_t capacity = 65536;
+	int saved_errno = 0;
+
+	*page = NULL;
+	if (ext) {
+		for (comp = comp_list; comp->ext; ++comp) {
+			if (STREQ (ext + 1, comp->ext)) {
+#ifdef HAVE_LIBZ
+				if (STREQ (ext, ".gz"))
+					break;
+#endif
+				return 0;
+			}
+		}
+	}
+	if (strstr (filename, ".Z/"))
+		return 0;
+	if (stat (filename, &st) < 0)
+		return -1;
+	if (!S_ISREG (st.st_mode))
+		return 0;
+#ifdef HAVE_LIBZ
+	if (ext && STREQ (ext, ".gz")) {
+		gz = gzopen (filename, "rb");
+		if (!gz)
+			return -1;
+	} else
+#endif
+	{
+		fp = fopen (filename, "rb");
+		if (!fp)
+			return -1;
+	}
+	p = XMALLOC (struct decompressed_page);
+	p->data = xmalloc (capacity);
+	p->len = 0;
+	for (;;) {
+		size_t n;
+		/* Keep reads bounded for gzread's int return type. */
+		if (capacity - p->len < 32769) {
+			if (capacity > (size_t) -1 / 2)
+				xalloc_die ();
+			capacity *= 2;
+			p->data = xrealloc (p->data, capacity);
+		}
+#ifdef HAVE_LIBZ
+		if (gz) {
+			int got = gzread (gz, p->data + p->len, 32768);
+			if (got <= 0) {
+				int zerr;
+				(void) gzerror (gz, &zerr);
+				if (zerr != Z_OK && zerr != Z_STREAM_END)
+					saved_errno = zerr == Z_ERRNO ? errno : EIO;
+				break;
+			}
+			n = got;
+		} else
+#endif
+		{
+			n = fread (p->data + p->len, 1, 32768, fp);
+			if (!n) {
+				if (ferror (fp))
+					saved_errno = errno ? errno : EIO;
+				break;
+			}
+		}
+		p->len += n;
+	}
+#ifdef HAVE_LIBZ
+	if (gz && gzclose (gz) != Z_OK && !saved_errno)
+		saved_errno = EIO;
+#endif
+	if (fp && fclose (fp) != 0 && !saved_errno)
+		saved_errno = errno;
+	if (saved_errno) {
+		decompressed_page_free (p);
+		errno = saved_errno;
+		return -1;
+	}
+	p->data[p->len] = '\0';
+	*page = p;
+	return 1;
+}
+
+void decompressed_page_free (struct decompressed_page *page)
+{
+	if (page) {
+		free (page->data);
+		free (page);
+	}
+}
+#endif /* ENABLE_INPROCESS_MANPAGES */

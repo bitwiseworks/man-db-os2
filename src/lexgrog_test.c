@@ -48,6 +48,10 @@
 
 #include "descriptions.h"
 #include "ult_src.h"
+#ifdef ENABLE_INPROCESS_MANPAGES
+#include "decompress.h"
+#include "lexgrog.h"
+#endif /* ENABLE_INPROCESS_MANPAGES */
 
 char *program_name;
 int quiet = 1;
@@ -159,6 +163,10 @@ int main (int argc, char **argv)
 		lexgrog lg;
 		const char *file;
 		int found = 0;
+#ifdef ENABLE_INPROCESS_MANPAGES
+		int parsed = 0;
+		struct decompressed_page *input = NULL;
+#endif /* ENABLE_INPROCESS_MANPAGES */
 
 		lg.type = type;
 
@@ -184,13 +192,31 @@ int main (int argc, char **argv)
 				path = NULL;
 			}
 
+#ifdef ENABLE_INPROCESS_MANPAGES
+			file = ult_src_with_page (files[i], path ? path : ".",
+					&statbuf, SO_LINK, NULL,
+					type == MANPAGE ? &input : NULL);
+#else
 			file = ult_src (files[i], path ? path : ".",
 					&statbuf, SO_LINK, NULL);
+#endif
 			if (path)
 				free (path);
 		}
 
+#ifdef ENABLE_INPROCESS_MANPAGES
+		if (file) {
+			if (input)
+				parsed = find_name_from_page (input, file, "-",
+							      &lg, encoding);
+			else
+				parsed = find_name (file, "-", &lg, encoding);
+		}
+		decompressed_page_free (input);
+		if (parsed) {
+#else
 		if (file && find_name (file, "-", &lg, encoding)) {
+#endif
 			struct page_description *descs =
 				parse_descriptions (NULL, lg.whatis);
 			const struct page_description *desc;

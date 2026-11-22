@@ -53,6 +53,10 @@
 #include "encodings.h"
 
 #include "manconv_client.h"
+#ifdef ENABLE_INPROCESS_MANPAGES
+#include "manconv.h"
+#include "lexgrog.h"
+#endif /* ENABLE_INPROCESS_MANPAGES */
 
 #define YY_READ_BUF_SIZE	1024
 #define MAX_NAME		8192
@@ -220,9 +224,30 @@ static int waiting_for_quote;
 
 static pipeline *decomp;
 
+#ifdef ENABLE_INPROCESS_MANPAGES
+static struct decompressed_page *buffered_page;
+static size_t buffered_pos;
+
+static const char *read_scanner_input (size_t *size)
+{
+	const char *block;
+	if (!buffered_page)
+		return pipeline_read (decomp, size);
+	if (*size > buffered_page->len - buffered_pos)
+		*size = buffered_page->len - buffered_pos;
+	block = buffered_page->data + buffered_pos;
+	buffered_pos += *size;
+	return block;
+}
+
+#define read_scanner_block(size) read_scanner_input (size)
+#else
+#define read_scanner_block(size) pipeline_read (decomp, size)
+#endif
+
 #define YY_INPUT(buf,result,max_size) { \
 	size_t size = max_size; \
-	const char *block = pipeline_read (decomp, &size); \
+	const char *block = read_scanner_block (&size); \
 	if (block && size != 0) { \
 		memcpy (buf, block, size); \
 		buf[size] = '\0'; \
@@ -787,8 +812,43 @@ static void newline_found (void)
 	waiting_for_quote = 0;
 }
 
+#ifdef ENABLE_INPROCESS_MANPAGES
+static int find_name_pipeline (const char *file, const char *filename,
+			       lexgrog *p_lg, const char *encoding);
+
 int find_name (const char *file, const char *filename, lexgrog *p_lg,
 	       const char *encoding)
+{
+	int ret;
+
+	/* Formatted cat pages may need the external col filter. */
+	if (strcmp (file, "-") != 0 && p_lg->type == MANPAGE) {
+		struct decompressed_page *page = NULL;
+		int opened;
+		drop_effective_privs ();
+		opened = decompressed_page_open (file, &page);
+		if (opened > 0)
+			ret = find_name_from_page (page, file, filename,
+						   p_lg, encoding);
+		regain_effective_privs ();
+		decompressed_page_free (page);
+		if (opened > 0)
+			return ret;
+		if (opened < 0) {
+			error (0, errno, "%s", file);
+			return 0;
+		}
+	}
+
+	return find_name_pipeline (file, filename, p_lg, encoding);
+}
+
+static int find_name_pipeline (const char *file, const char *filename,
+			       lexgrog *p_lg, const char *encoding)
+#else
+int find_name (const char *file, const char *filename, lexgrog *p_lg,
+	       const char *encoding)
+#endif
 {
 	int ret;
 	pipeline *p;
@@ -844,6 +904,10 @@ int find_name_decompressed (pipeline *p, const char *filename, lexgrog *p_lg)
 	int ret;
 
 	decomp = p;
+#ifdef ENABLE_INPROCESS_MANPAGES
+	if (p)
+		buffered_page = NULL;
+#endif /* ENABLE_INPROCESS_MANPAGES */
 
 	fname = filename;
 	*(p_name = newname) = '\0';
@@ -864,7 +928,10 @@ int find_name_decompressed (pipeline *p, const char *filename, lexgrog *p_lg)
 
 	regain_effective_privs ();
 
-	pipeline_wait (decomp);
+#ifdef ENABLE_INPROCESS_MANPAGES
+	if (decomp)
+#endif
+		pipeline_wait (decomp);
 
 	if (ret)
 		return 0;
@@ -891,3 +958,35 @@ int find_name_decompressed (pipeline *p, const char *filename, lexgrog *p_lg)
 		return p_name[0];
 	}
 }
+
+#ifdef ENABLE_INPROCESS_MANPAGES
+int find_name_from_page (struct decompressed_page *page, const char *file,
+			 const char *filename, lexgrog *lg,
+			 const char *encoding)
+{
+	char *page_encoding = NULL;
+	int ret;
+
+	if (!encoding) {
+		char *lang = lang_dir (file);
+		page_encoding = get_page_encoding (lang);
+		free (lang);
+		encoding = page_encoding;
+	}
+	if (manconv_page (page, encoding) < 0) {
+		/* A bad byte after NAME must not prevent the original scanner
+		 * from extracting it.  Bypass the buffered entry point here
+		 * so retrying conversion cannot recurse into this function.
+		 */
+		ret = find_name_pipeline (file, filename, lg, encoding);
+		free (page_encoding);
+		return ret;
+	}
+	free (page_encoding);
+	buffered_page = page;
+	buffered_pos = 0;
+	ret = find_name_decompressed (NULL, filename, lg);
+	buffered_page = NULL;
+	return ret;
+}
+#endif /* ENABLE_INPROCESS_MANPAGES */

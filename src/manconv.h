@@ -21,3 +21,8 @@
  */
 
 void manconv (struct pipeline *p, char * const *from, const char *to);
+
+#ifdef ENABLE_INPROCESS_MANPAGES
+struct decompressed_page;
+int manconv_page (struct decompressed_page *page, const char *encoding);
+#endif /* ENABLE_INPROCESS_MANPAGES */

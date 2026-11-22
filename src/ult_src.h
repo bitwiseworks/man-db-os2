@@ -40,4 +40,10 @@ struct stat;
 extern const char *ult_src (const char *name, const char *path,
 			    struct stat *buf, int flags,
 			    struct ult_trace *trace);
+#ifdef ENABLE_INPROCESS_MANPAGES
+struct decompressed_page;
+extern const char *ult_src_with_page (const char *name, const char *path,
+		struct stat *buf, int flags, struct ult_trace *trace,
+		struct decompressed_page **page);
+#endif /* ENABLE_INPROCESS_MANPAGES */
 extern void free_ult_trace (struct ult_trace *trace);

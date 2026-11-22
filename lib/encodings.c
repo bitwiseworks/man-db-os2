@@ -860,12 +860,18 @@ static char *convert_encoding (char *encoding)
 /* Inspect the first line of data in a pipeline for preprocessor encoding
  * declarations.
  */
+#ifdef ENABLE_INPROCESS_MANPAGES
+char *check_preprocessor_encoding_line (const char *line)
+#else
 char *check_preprocessor_encoding (pipeline *p)
+#endif
 {
 	char *pp_encoding = NULL;
 
 #ifdef PP_COOKIE
+#ifndef ENABLE_INPROCESS_MANPAGES
 	const char *line = pipeline_peekline (p);
+#endif
 	char *directive = NULL;
 
 	/* Some people use .\" incorrectly. We allow it for encoding
@@ -915,3 +921,10 @@ char *check_preprocessor_encoding (pipeline *p)
 
 	return pp_encoding;
 }
+
+#ifdef ENABLE_INPROCESS_MANPAGES
+char *check_preprocessor_encoding (pipeline *p)
+{
+	return check_preprocessor_encoding_line (pipeline_peekline (p));
+}
+#endif /* ENABLE_INPROCESS_MANPAGES */

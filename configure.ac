@@ -267,6 +267,17 @@ MAN_CHECK_PROGS([grap], [GRAP], [use GRAP to preprocess graphs], [grap])
 MAN_CHECK_PROGS([pic], [PIC], [use PIC to preprocess pictures], [pic gpic])
 test -n "$pic" && pic="$pic -S"
 
+AC_ARG_ENABLE([inprocess-manpages],
+	[AS_HELP_STRING([--enable-inprocess-manpages],
+		[scan plain/gzip pages in-process instead of using forked pipelines])],
+	[], [enable_inprocess_manpages=no])
+AS_CASE([$enable_inprocess_manpages],
+	[yes], [AC_DEFINE([ENABLE_INPROCESS_MANPAGES], [1],
+		[Define to scan plain/gzip manual pages without pipeline children.])],
+	[no], [],
+	[AC_MSG_ERROR([--enable-inprocess-manpages accepts only yes or no])])
+AC_SUBST([INPROCESS_MANPAGES], [$enable_inprocess_manpages])
+
 MAN_CHECK_PROGS([gzip], [GZIP], [use GZIP as GNU compression utility], [gzip])
 if test -n "$gzip"
 then

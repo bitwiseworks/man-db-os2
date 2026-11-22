@@ -35,3 +35,6 @@ const char *get_output_encoding (const char *device);
 const char *get_less_charset (const char *locale_charset);
 const char *get_jless_charset (const char *locale_charset);
 char *check_preprocessor_encoding (struct pipeline *p);
+#ifdef ENABLE_INPROCESS_MANPAGES
+char *check_preprocessor_encoding_line (const char *line);
+#endif /* ENABLE_INPROCESS_MANPAGES */

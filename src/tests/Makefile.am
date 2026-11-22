@@ -20,6 +20,7 @@
 
 TESTS_ENVIRONMENT = PATH_SEPARATOR="$(PATH_SEPARATOR)"; export PATH_SEPARATOR; \
 		    PATH="$(abs_builddir)/..$(PATH_SEPARATOR)$$PATH"; export PATH; \
+		    INPROCESS_MANPAGES=@INPROCESS_MANPAGES@; export INPROCESS_MANPAGES; \
 		    DBTYPE=$(DBTYPE); export DBTYPE; \
 		    MANDIR_LAYOUT=$(MANDIR_LAYOUT); export MANDIR_LAYOUT; \
 		    abs_top_builddir=$(abs_top_builddir); export abs_top_builddir; \
@@ -28,10 +29,10 @@ TESTS_ENVIRONMENT = PATH_SEPARATOR="$(PATH_SEPARATOR)"; export PATH_SEPARATOR; \
 # Each test must use the configure-detected shell, not necessarily /bin/sh.
 AM_LOG_FLAGS = $(SHELL)
 ALL_TESTS = \
-	lexgrog-1 \
+	lexgrog-1 lexgrog-2 \
 	man-1 man-2 man-3 man-4 man-5 man-6 man-7 man-8 man-9 man-10 man-11 \
 	manconv-1 manconv-2 manconv-3 manconv-4 \
-	mandb-1 mandb-2 mandb-3 mandb-4 mandb-5 mandb-6 mandb-7 mandb-8 \
+	mandb-1 mandb-2 mandb-3 mandb-4 mandb-5 mandb-6 mandb-7 mandb-8 mandb-9 \
 	manpath-1 \
 	whatis-1 \
 	zsoelim-1

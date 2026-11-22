@@ -1,0 +1,27 @@
+#! /bin/sh
+
+# Index a gzip .so alias using the buffered target and its encoding tag.
+: ${srcdir=.}
+. "$srcdir/testlib.sh"
+: ${MANDB=mandb}
+: ${ACCESSDB=accessdb}
+init
+fake_config /usr/share/man
+root="$tmpdir/usr/share/man"
+db_ext="$(db_ext)"
+write_page target 1 "$root/man1/target.1.gz" ISO-8859-1 gz \
+	'-*- coding: ISO-8859-1 -*-' 'target, alias \- café'
+printf '.\\" comment\n.so man1/target.1.gz\n' | gzip -c \
+	>"$root/man1/alias.1.gz"
+# A later .so is not an alias when the first line is blank.
+printf '\n.so man1/missing.1\n.TH blank 1\n.SH NAME\nblank \\- blank first line\n.SH DESCRIPTION\ntest\n' |
+	gzip -c >"$root/man1/blank.1.gz"
+run $MANDB -C "$tmpdir/manpath.config" -u -q "$root"
+accessdb_filter "$root/index$db_ext" >"$tmpdir/output"
+expect_pass 'buffered target is indexed in UTF-8' \
+	'grep "^target -> .*café" "$tmpdir/output"'
+expect_pass 'buffered .so alias is indexed' \
+	'grep "^alias -> .*café" "$tmpdir/output"'
+expect_pass 'page with a blank first line is indexed' \
+	'grep "^blank -> .*blank first line" "$tmpdir/output"'
+finish

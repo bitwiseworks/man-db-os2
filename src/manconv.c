@@ -57,6 +57,9 @@
 #include "encodings.h"
 
 #include "manconv.h"
+#ifdef ENABLE_INPROCESS_MANPAGES
+#include "decompress.h"
+#endif /* ENABLE_INPROCESS_MANPAGES */
 
 #ifdef HAVE_ICONV
 
@@ -358,3 +361,99 @@ void manconv (pipeline *p, char * const *from ATTRIBUTE_UNUSED,
 }
 
 #endif /* HAVE_ICONV */
+
+#ifdef ENABLE_INPROCESS_MANPAGES
+/* Convert a buffered page without stdout redirection or a pipeline child.
+ * Keep the original bytes until a candidate encoding succeeds, so fallback
+ * never combines output from different encodings.  On failure, let the
+ * pipeline fallback handle diagnostics using its original semantics.
+ */
+int manconv_page (struct decompressed_page *page, const char *encoding)
+{
+#ifdef HAVE_ICONV
+	char *declared = check_preprocessor_encoding_line (page->data);
+	const char *from[2];
+	int candidates, i;
+
+	if (declared) {
+		from[0] = declared;
+		candidates = 1;
+	} else if (encoding) {
+		from[0] = "UTF-8";
+		from[1] = encoding;
+		candidates = STREQ (encoding, "UTF-8") ? 1 : 2;
+	} else
+		return 0;
+
+	for (i = 0; i < candidates; ++i) {
+		iconv_t cd;
+		char *out, *inptr, *outptr;
+		size_t capacity, inleft, outleft;
+		int failed = 0;
+		const char *target = "UTF-8";
+#ifndef __OS2__
+		if (i == candidates - 1)
+			target = "UTF-8//IGNORE";
+#endif
+		cd = iconv_open (target, from[i]);
+		if (cd == (iconv_t) -1)
+			continue;
+		capacity = page->len < 65536 ? 65536 : page->len;
+		out = xmalloc (capacity);
+		inptr = page->data;
+		inleft = page->len;
+		outptr = out;
+		outleft = capacity - 1;
+		for (;;) {
+			size_t result;
+			int flushing = inleft == 0;
+			if (!flushing)
+				result = iconv (cd, (ICONV_CONST char **) &inptr,
+						&inleft, &outptr, &outleft);
+			else
+				result = iconv (cd, NULL, NULL, &outptr, &outleft);
+			if (result != (size_t) -1) {
+				if (flushing)
+					break;
+				continue;
+			}
+			if (errno == E2BIG) {
+				size_t used = outptr - out;
+				if (capacity > (size_t) -1 / 2)
+					xalloc_die ();
+				capacity *= 2;
+				out = xrealloc (out, capacity);
+				outptr = out + used;
+				outleft = capacity - used - 1;
+				continue;
+			}
+#ifndef __OS2__
+			/* Some iconv implementations consume ignored invalid
+			 * bytes but still report EILSEQ at the end of input.
+			 */
+			if (i == candidates - 1 && errno == EILSEQ && !inleft)
+				break;
+#endif
+			failed = 1;
+			break;
+		}
+		iconv_close (cd);
+		if (!failed) {
+			*outptr = '\0';
+			free (page->data);
+			page->data = out;
+			page->len = outptr - out;
+			free (declared);
+			return 0;
+		}
+		free (out);
+	}
+	free (declared);
+	return -1;
+#else
+	(void) page;
+	(void) encoding;
+	return 0;
+#endif
+}
+#endif /* ENABLE_INPROCESS_MANPAGES */

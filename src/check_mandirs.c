@@ -66,6 +66,10 @@
 #include "globbing.h"
 #include "manp.h"
 #include "ult_src.h"
+#ifdef ENABLE_INPROCESS_MANPAGES
+#include "decompress.h"
+#include "lexgrog.h"
+#endif /* ENABLE_INPROCESS_MANPAGES */
 #include "check_mandirs.h"
 
 int opt_test;		/* don't update db */
@@ -129,6 +133,9 @@ void test_manfile (MYDBM_FILE dbf, const char *file, const char *path)
 	size_t len;
 	struct ult_trace ult_trace;
 	struct whatis_hashent *whatis;
+#ifdef ENABLE_INPROCESS_MANPAGES
+	struct decompressed_page *input = NULL;
+#endif /* ENABLE_INPROCESS_MANPAGES */
 
 	memset (&lg, 0, sizeof (struct lexgrog));
 	memset (&info, 0, sizeof (struct mandata));
@@ -228,8 +235,14 @@ void test_manfile (MYDBM_FILE dbf, const char *file, const char *path)
 		 * looking for whatis info in files containing only '.so
 		 * manx/foo.x', which will give us an unobtainable whatis
 		 * for the entry. */
+#ifdef ENABLE_INPROCESS_MANPAGES
+		ult = ult_src_with_page (file, path, &buf,
+			       SO_LINK | SOFT_LINK | HARD_LINK, &ult_trace,
+			       &input);
+#else
 		ult = ult_src (file, path, &buf,
 			       SO_LINK | SOFT_LINK | HARD_LINK, &ult_trace);
+#endif
 	}
 
 	if (!ult) {
@@ -264,7 +277,16 @@ void test_manfile (MYDBM_FILE dbf, const char *file, const char *path)
 
 		lg.type = MANPAGE;
 		drop_effective_privs ();
-		find_name (ult, file_base, &lg, NULL);
+#ifdef ENABLE_INPROCESS_MANPAGES
+		if (input)
+			find_name_from_page (input, ult, file_base, &lg, NULL);
+		else
+#endif /* ENABLE_INPROCESS_MANPAGES */
+			find_name (ult, file_base, &lg, NULL);
+#ifdef ENABLE_INPROCESS_MANPAGES
+		decompressed_page_free (input);
+		input = NULL;
+#endif /* ENABLE_INPROCESS_MANPAGES */
 		free (file_base);
 		regain_effective_privs ();
 
