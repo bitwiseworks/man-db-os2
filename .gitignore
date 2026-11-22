@@ -183,3 +183,6 @@ manual/Makefile.in
 src/Makefile.in
 src/tests/Makefile.in
 tools/Makefile.in
+*.exe
+*.log
+*.trs
